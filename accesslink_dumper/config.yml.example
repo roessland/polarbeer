@@ -1,0 +1,8 @@
+client_id: asdf
+client_secret: asdf
+mongo_host: localhost
+mongo_port: 27017
+mongo_db: asdf
+mongo_user: qwerty
+mongo_pass: asdf
+mongo_uri: mongodb://qwerty:asdf@localhost:27017/
