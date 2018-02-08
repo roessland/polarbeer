@@ -1,0 +1,10 @@
+client_id: 
+client_secret: 
+access_token: 
+user_id: 
+mongo_host: localhost
+mongo_port: 27017
+mongo_db: 
+mongo_user: 
+mongo_pass: 
+mongo_uri: mongodb://fdfdf:fdfdfd@localhost:27017/
