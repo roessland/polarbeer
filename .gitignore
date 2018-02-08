@@ -1,0 +1,9 @@
+*.pyc
+venv
+USER_ID
+CLIENT_ID
+CLIENT_SECRET
+ACCESS_TOKEN
+config.yml
+backup.tar.gz
+dump/

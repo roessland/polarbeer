@@ -1,1 +1,6 @@
+wheel
+flask
+pymongo
+sh
+pyyaml
 requests
