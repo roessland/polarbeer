@@ -11,7 +11,7 @@ sh.mongodump(
         password=config["mongo_pass"])
 
 print("Removing existing backup archive (if any)")
-sh.rm("backup.tar.gz")
+sh.rm("-f", "backup.tar.gz")
 
 print("Compressing backup directory to backup.tar.gz")
 sh.tar("zcvf", "backup.tar.gz", "dump/")

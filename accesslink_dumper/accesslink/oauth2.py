@@ -124,6 +124,7 @@ class OAuth2Client(object):
 
     def __request(self, method, **kwargs):
         kwargs = self.__build_request_kwargs(**kwargs)
+        print("doing request to", method, kwargs)
         response = requests.request(method, **kwargs)
         return self.__parse_response(response)
 

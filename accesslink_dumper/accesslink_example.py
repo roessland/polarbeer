@@ -5,6 +5,7 @@ from __future__ import print_function
 from utils import load_config, save_config, pretty_print_json
 from accesslink import AccessLink
 
+import time
 import requests
 from pymongo import MongoClient
 
@@ -84,7 +85,11 @@ class PolarAccessLinkExample(object):
             print("No new data available.")
             return
 
+        num = 1
+        total = len(available_data)
         for item in available_data["available-user-data"]:
+            print("Getting data", num, "of", total)
+            num += 1
             if item["data-type"] == "EXERCISE":
                 self.get_exercises()
             elif item["data-type"] == "ACTIVITY_LOG":
@@ -128,30 +133,59 @@ class PolarAccessLinkExample(object):
         print("Client authorized (or already authorized)!")
 
     def get_exercises(self):
+
+        start_time = time.time()
+        print("transaction started at", start_time)
         transaction = self.accesslink.training_data.create_transaction(user_id=self.config["user_id"],
                                                                        access_token=self.config["access_token"])
+
         if not transaction:
             print("No new exercises available.")
             return
 
+        print("transaction: ", transaction)
+        print("Transaction URL: ", transaction.transaction_url)
+        print("Transaction user ID: ", transaction.user_id)
+        print("Transaction access token: ", transaction.access_token)
+        print("transaction id: ", transaction.transaction_url.split("/")[-1])
+        #17648066
+
+
         resource_urls = transaction.list_exercises()["exercises"]
+        print("resource urls", resource_urls)
 
         for url in resource_urls:
             exercise_summary = transaction.get_exercise_summary(url)
+            if not "id" in exercise_summary:
+                print("Error! Missing Id in exercise summary! Skipping url ", url)
+                print(exercise_summary)
+                continue
+
             exercise_summary["_id"] = exercise_summary["id"]
             exercise_id = self.db.exercise.save(exercise_summary)
+            print(exercise_summary)
+            print(url)
 
-            gpx_data = transaction.get_gpx(url)
-            gpx = {"_id": exercise_id, "data": gpx_data}
-            self.db.exercise_gpx.save(gpx)
+            if self.db.exercise_gpx.find_one({'_id': exercise_id}):
+                print("GPX for exercise", exercise_id, "already downloaded -- skipping")
+            else:
+                gpx_data = transaction.get_gpx(url)
+                gpx = {"_id": exercise_id, "data": gpx_data}
+                self.db.exercise_gpx.save(gpx)
 
-            tcx_data = transaction.get_tcx(url)
-            tcx = {"_id": exercise_id, "data": tcx_data}
-            self.db.exercise_tcx.save(tcx)
+            if self.db.exercise_tcx.find_one({'_id': exercise_id}):
+                print("TCX for exercise", exercise_id, "already downloaded -- skipping")
+            else:
+                tcx_data = transaction.get_tcx(url)
+                tcx = {"_id": exercise_id, "data": tcx_data}
+                self.db.exercise_tcx.save(tcx)
 
-            fit_data = transaction.get_fit(url)
-            fit = {"_id": exercise_id, "data": fit_data}
-            self.db.exercise_fit.save(fit)
+            if self.db.exercise_fit.find_one({'_id': exercise_id}):
+                print("FIT for exercise", exercise_id, "already downloaded -- skipping")
+            else:
+                fit_data = transaction.get_fit(url)
+                fit = {"_id": exercise_id, "data": fit_data}
+                self.db.exercise_fit.save(fit)
 
             heart_rate_zones = transaction.get_heart_rate_zones(url)
             heart_rate_zones["_id"] = exercise_id
@@ -162,18 +196,24 @@ class PolarAccessLinkExample(object):
                 try:
                     samples_data = transaction.get_samples(samples_url)
                 except Exception as e:
-                    print(samples_url)
-                    print(e)
-                    print(samples_data)
+                    print("available_samples", available_samples)
+                    print("samples_url", samples_url)
+                    print("e", e)
+                    print("samples_data", samples_data)
                     1/0
                 samples_data["_id"] = exercise_id
                 self.db.exercise_samples.save(samples_data)
 
             print("Downloaded exercise id", exercise_id)
+            time.sleep(1)
 
         # Temporarily removed all commits to ensure we have a steady
         # flow of items to use for testing
+        end_time = time.time()
+        print("attempting to commit after", end_time-start_time, "seconds")
         transaction.commit()
+        print("sleeping for 200 seconds to avoid rate limit")
+        time.sleep(200)
 
     def get_daily_activity(self):
         transaction = self.accesslink.daily_activity.create_transaction(user_id=self.config["user_id"],
@@ -206,8 +246,10 @@ class PolarAccessLinkExample(object):
             self.db.activity_zone_samples.save(zone_samples)
 
             print("Downloaded activity data with id", activity_id)
+            time.sleep(10)
 
         transaction.commit()
+        time.sleep(20)
 
     def get_physical_info(self):
         transaction = self.accesslink.physical_info.create_transaction(user_id=self.config["user_id"],
@@ -225,6 +267,7 @@ class PolarAccessLinkExample(object):
             print("Downloaded physical info with id", physical_info["id"])
 
         transaction.commit()
+        time.sleep(20)
 
 if __name__ == "__main__":
     PolarAccessLinkExample()
